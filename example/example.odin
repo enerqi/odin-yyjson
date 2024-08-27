@@ -125,7 +125,7 @@ main :: proc() {
 	read_json_string()
 	write_json_string()
 
-	tempf, err := os.open(TEMP_FILE_PATH, os.O_CREATE)
+	tempf, err := os.open(TEMP_FILE_PATH, os.O_CREATE, 0o664)
 	have_temp_file := (err == os.ERROR_NONE)
 	if have_temp_file do os.close(tempf)
 	defer if have_temp_file {

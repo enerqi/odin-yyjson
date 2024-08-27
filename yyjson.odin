@@ -9,12 +9,12 @@ when ODIN_OS == .Windows {
 	foreign import yyjson "lib/yyjson.lib"
 } else when ODIN_OS == .Linux {
 	when !#exists("lib/yyjson.a") {
-		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Linux. Compile by running `make -C lib/Makefile`")
+		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Linux. Compile by running `make -C src`")
 	}
 	foreign import yyjson "lib/yyjson.a"
 } else when ODIN_OS == .Darwin {
 	when !#exists("lib/darwin/yyjson.a") {
-		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Darwin. Compile by running `make -C lib/Makefile`")
+		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Darwin. Compile by running `make -C src`")
 	}
 	foreign import yyjson "lib/darwin/yyjson.a"
 } else {

@@ -7,14 +7,14 @@ import "core:c/libc"
 when ODIN_OS == .Windows {
 	// yyjson.lib is shipped with these bindings, but can be rebuilt manually with ./src/build.bat
 	foreign import yyjson "lib/yyjson.lib"
-} else when ODIN_OS == .Linux {
+} else when ODIN_OS == .Linux || ODIN_OS == .FreeBSD || ODIN_OS == .OpenBSD || ODIN_OS == .NetBSD {
 	when !#exists("lib/yyjson.a") {
-		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Linux. Compile by running `make -C src`")
+		#panic("Cannot find compiled yyjson libraries ./lib/yyjson.a. Compile by running `make -C src`")
 	}
 	foreign import yyjson "lib/yyjson.a"
 } else when ODIN_OS == .Darwin {
 	when !#exists("lib/darwin/yyjson.a") {
-		#panic("Cannot find compiled yyjson libraries for ODIN_OS.Darwin. Compile by running `make -C src`")
+		#panic("Cannot find compiled yyjson libraries ./lib/darwin/yyjson.a for ODIN_OS.Darwin. Compile by running `make -C src`")
 	}
 	foreign import yyjson "lib/darwin/yyjson.a"
 } else {

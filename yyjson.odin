@@ -14,7 +14,9 @@ when ODIN_OS == .Windows {
 	foreign import yyjson "lib/yyjson.a"
 } else when ODIN_OS == .Darwin {
 	when !#exists("lib/darwin/yyjson.a") {
-		#panic("Cannot find compiled yyjson libraries ./lib/darwin/yyjson.a for ODIN_OS.Darwin. Compile by running `make -C src`")
+		#panic(
+			"Cannot find compiled yyjson libraries ./lib/darwin/yyjson.a for ODIN_OS.Darwin. Compile by running `make -C src`",
+		)
 	}
 	foreign import yyjson "lib/darwin/yyjson.a"
 } else {
@@ -211,6 +213,9 @@ doc :: struct {
 	str_pool: ^c.char,
 }
 
+// Opaque state for incremental JSON reader
+incr_state :: struct {}
+
 
 // Run-time options for JSON reader
 // Default option (YYJSON_READ_NOFLAG):
@@ -228,27 +233,27 @@ Read_Flags :: enum c.uint32_t {
     The caller should hold the input data before free the document.
     The input data must be padded by at least `YYJSON_PADDING_SIZE` bytes.
     For example: `[1,2]` should be `[1,2]\0\0\0\0`, input length should be 5. */
-	YYJSON_READ_INSITU                = 0, // 1 << 0,
+	YYJSON_READ_INSITU                  = 0, // 1 << 0,
 
 	/** Stop when done instead of issuing an error if there's additional content
 	    after a JSON document. This option may be used to parse small pieces of JSON
 	    in larger data, such as `NDJSON`. */
-	YYJSON_READ_STOP_WHEN_DONE        = 1, // 1 << 1,
+	YYJSON_READ_STOP_WHEN_DONE          = 1, // 1 << 1,
 
 	/** Allow single trailing comma at the end of an object or array,
 	    such as `[1,2,3,]`, `{"a":1,"b":2,}` (non-standard). */
-	YYJSON_READ_ALLOW_TRAILING_COMMAS = 2, // 1 << 2,
+	YYJSON_READ_ALLOW_TRAILING_COMMAS   = 2, // 1 << 2,
 
 	/** Allow C-style single line and multiple line comments (non-standard). */
-	YYJSON_READ_ALLOW_COMMENTS        = 3, // 1 << 3,
+	YYJSON_READ_ALLOW_COMMENTS          = 3, // 1 << 3,
 
 	/** Allow inf/nan number and literal, case-insensitive,
 	    such as 1e999, NaN, inf, -Infinity (non-standard). */
-	YYJSON_READ_ALLOW_INF_AND_NAN     = 4, // 1 << 4,
+	YYJSON_READ_ALLOW_INF_AND_NAN       = 4, // 1 << 4,
 
 	/** Read all numbers as raw strings (value with `YYJSON_TYPE_RAW` type),
 	    inf/nan literal is also read as raw with `ALLOW_INF_AND_NAN` flag. */
-	YYJSON_READ_NUMBER_AS_RAW         = 5, // 1 << 5,
+	YYJSON_READ_NUMBER_AS_RAW           = 5, // 1 << 5,
 
 	/** Allow reading invalid unicode when parsing string values (non-standard).
 	    Invalid characters will be allowed to appear in the string values, but
@@ -258,16 +263,66 @@ Read_Flags :: enum c.uint32_t {
 	    @warning Strings in JSON values may contain incorrect encoding when this
 	    option is used, you need to handle these strings carefully to avoid security
 	    risks. */
-	YYJSON_READ_ALLOW_INVALID_UNICODE = 6, // 1 << 6,
+	YYJSON_READ_ALLOW_INVALID_UNICODE   = 6, // 1 << 6,
 
 	/** Read big numbers as raw strings. These big numbers include integers that
 	    cannot be represented by `int64_t` and `uint64_t`, and floating-point
 	    numbers that cannot be represented by finite `double`.
 	    The flag will be overridden by `YYJSON_READ_NUMBER_AS_RAW` flag. */
-	YYJSON_READ_BIGNUM_AS_RAW         = 7, // 1 << 7,
+	YYJSON_READ_BIGNUM_AS_RAW           = 7, // 1 << 7,
+
+	/** Allow UTF-8 BOM and skip it before parsing if any (non-standard). */
+	YYJSON_READ_ALLOW_BOM               = 8, // 1 << 8
+
+	/** Allow extended number formats (non-standard):
+    - Hexadecimal numbers, such as `0x7B`.
+    - Numbers with leading or trailing decimal point, such as `.123`, `123.`.
+    - Numbers with a leading plus sign, such as `+123`. */
+	YYJSON_READ_ALLOW_EXT_NUMBER        = 9, // 1 << 9;
+
+	/** Allow extended escape sequences in strings (non-standard):
+    - Additional escapes: `\a`, `\e`, `\v`, ``\'``, `\?`, `\0`.
+    - Hex escapes: `\xNN`, such as `\x7B`.
+    - Line continuation: backslash followed by line terminator sequences.
+    - Unknown escape: if backslash is followed by an unsupported character,
+	the backslash will be removed and the character will be kept as-is.
+	However, `\1`-`\9` will still trigger an error. */
+	YYJSON_READ_ALLOW_EXT_ESCAPE        = 10, // 1 << 10;
+
+	/** Allow extended whitespace characters (non-standard):
+    - Vertical tab `\v` and form feed `\f`.
+    - Line separator `\u2028` and paragraph separator `\u2029`.
+    - Non-breaking space `\xA0`.
+    - Byte order mark: `\uFEFF`.
+    - Other Unicode characters in the Zs (Separator, space) category. */
+	YYJSON_READ_ALLOW_EXT_WHITESPACE    = 11, // 1 << 11;
+
+	/** Allow strings enclosed in single quotes (non-standard), such as ``'ab'``. */
+	YYJSON_READ_ALLOW_SINGLE_QUOTED_STR = 12, // 1 << 12;
+
+	/** Allow object keys without quotes (non-standard), such as `{a:1,b:2}`.
+    This extends the ECMAScript IdentifierName rule by allowing any
+    non-whitespace character with code point above `U+007F`. */
+	YYJSON_READ_ALLOW_UNQUOTED_KEY      = 13, // 1 << 13;
 }
 
 read_flag :: bit_set[Read_Flags;c.uint32_t]
+
+/** Allow JSON5 format, see: [https://json5.org].
+    This flag supports all JSON5 features with some additional extensions:
+    - Accepts more escape sequences than JSON5 (e.g. `\a`, `\e`).
+    - Unquoted keys are not limited to ECMAScript IdentifierName.
+    - Allow case-insensitive `NaN`, `Inf` and `Infinity` literals. */
+YYJSON_READ_JSON5 :: read_flag {
+	.YYJSON_READ_ALLOW_TRAILING_COMMAS,
+	.YYJSON_READ_ALLOW_COMMENTS,
+	.YYJSON_READ_ALLOW_INF_AND_NAN,
+	.YYJSON_READ_ALLOW_EXT_NUMBER,
+	.YYJSON_READ_ALLOW_EXT_ESCAPE,
+	.YYJSON_READ_ALLOW_EXT_WHITESPACE,
+	.YYJSON_READ_ALLOW_SINGLE_QUOTED_STR,
+	.YYJSON_READ_ALLOW_UNQUOTED_KEY,
+}
 
 read_code :: enum c.uint32_t {
 	/** Success, no error. */
@@ -357,6 +412,25 @@ Write_Flags :: enum c.uint32_t {
 	/** Adds a newline character `\n` at the end of the JSON.
 	    This can be helpful for text editors or NDJSON. */
 	YYJSON_WRITE_NEWLINE_AT_END        = 7,
+
+	/** Write floating-point numbers using single-precision (float).
+    - This casts `double` to `float` before serialization.
+    - This will produce shorter output, but may lose some precision.
+    - This flag is ignored if `YYJSON_WRITE_FP_TO_FIXED(prec)` is also used. */
+	YYJSON_WRITE_FP_TO_FLOAT           = 27, // (1 << (32 - 5))
+}
+
+/** YYJSON_WRITE_FP_TO_FIXED is an extra feature that combines multiple bits to set the fp precision.
+    This doesn't play well with the other flags all fitting into a bitset cleanly.
+
+	Write floating-point number using fixed-point notation.
+	- This is similar to ECMAScript `Number.prototype.toFixed(prec)`,
+	  but with trailing zeros removed. The `prec` ranges from 1 to 15.
+	- This will produce shorter output but may lose some precision. */
+add_write_fp_to_fixed_precision_bits :: proc(flag: write_flag, precision: c.uint32_t) -> write_flag {
+	write_fp_to_fixed_bits := precision << (32 - 4)
+	new_flag := transmute(c.uint32_t)flag | write_fp_to_fixed_bits
+	return transmute(write_flag)new_flag
 }
 
 write_flag :: bit_set[Write_Flags;c.uint32_t]
@@ -615,6 +689,20 @@ foreign yyjson {
 	// Set the value to string (with length). Returns false if input is NULL or `val` is object or array.
 	set_strn :: #force_inline proc(val: ^val, str: cstring, len: c.size_t) -> bool ---
 
+	/** Marks this string as not needing to be escaped during JSON writing.
+	    This can be used to avoid the overhead of escaping if the string contains
+	    only characters that do not require escaping.
+	    Returns false if input is NULL or `val` is not string.
+	    @see YYJSON_SUBTYPE_NOESC subtype.
+	    @warning This will modify the `immutable` value, use with caution. */
+	set_str_noesc :: #force_inline proc(val: ^val, noesc: bool) ---
+
+	/** Set the floating-point number's output format to single-precision.
+    	Returns false if input is NULL or `val` is not real type.
+    	@see YYJSON_WRITE_FP_TO_FLOAT flag.
+    	@warning This will modify the `immutable` value, use with caution. */
+	set_fp_to_float :: #force_inline proc(val: ^val, flt: bool) ---
+
 
 	mut_set_arr :: #force_inline proc(val: ^mut_val) -> bool ---
 	mut_set_bool :: #force_inline proc(val: ^mut_val, v: bool) -> bool ---
@@ -628,6 +716,19 @@ foreign yyjson {
 	mut_set_strn :: #force_inline proc(val: ^mut_val, str: cstring, len: c.size_t) -> bool ---
 	mut_set_uint :: #force_inline proc(val: ^mut_val, num: c.uint64_t) -> bool ---
 
+	/** Marks this string as not needing to be escaped during JSON writing.
+	    This can be used to avoid the overhead of escaping if the string contains
+	    only characters that do not require escaping.
+	    Returns false if input is NULL or `val` is not string.
+	    @see YYJSON_SUBTYPE_NOESC subtype.
+	    @warning This will modify the `immutable` value, use with caution. */
+	mut_set_str_noesc :: #force_inline proc(val: ^mut_val, noesc: bool) ---
+
+	/** Set the floating-point number's output format to single-precision.
+    	Returns false if input is NULL or `val` is not real type.
+    	@see YYJSON_WRITE_FP_TO_FLOAT flag.
+    	@warning This will modify the `immutable` value, use with caution. */
+	mut_set_fp_to_float :: #force_inline proc(val: ^mut_val, flt: bool) ---
 
 	/* get ----------------------------- */
 
@@ -1122,6 +1223,28 @@ foreign yyjson {
 	val_write_fp :: proc(fp: ^libc.FILE, val: ^val, flg: write_flag, alc: ^alc = nil, err: ^write_err = nil) -> bool ---
 	val_write_opts :: proc(val: ^val, flg: write_flag, alc: ^alc = nil, len: ^c.size_t = nil, err: ^write_err = nil) -> cstring ---
 
+	/**
+	 Write a JSON number.
+
+	 @param val A JSON number value to be converted to a string.
+	    If this parameter is invalid, the function will fail and return NULL.
+	 @param buf A buffer to store the resulting null-terminated string.
+	    If this parameter is NULL, the function will fail and return NULL.
+	    For integer values, the buffer must be at least 21 bytes.
+	    For floating-point values, the buffer must be at least 40 bytes.
+	 @return On success, returns a pointer to the character after the last
+	    written character. On failure, returns NULL.
+	 @note
+	    - This function is thread-safe and does not allocate memory
+		(when `YYJSON_DISABLE_FAST_FP_CONV` is not defined).
+	    - This function will fail and return NULL only in the following cases:
+		1) `val` or `buf` is NULL;
+		2) `val` is not a number type;
+		3) `val` is `inf` or `nan`, and non-standard JSON is explicitly disabled
+		    via the `YYJSON_DISABLE_NON_STANDARD` flag.
+	 */
+	write_number :: proc(val: ^val, buf: [^]byte) -> [^]byte ---
+	mut_write_number :: proc(val: ^mut_val, buf: [^]byte) -> [^]byte ---
 
 	/* read ----------------------------- */
 
@@ -1133,4 +1256,55 @@ foreign yyjson {
 	read_number :: proc(dat: cstring, val: val, flg: read_flag, alc: ^alc = nil, err: ^read_err = nil) -> cstring ---
 	mut_read_number :: #force_inline proc(dat: cstring, val: ^mut_val, flg: read_flag, alc: ^alc = nil, err: ^read_err = nil) -> cstring ---
 
+	/* incremental read ----------------------------- */
+
+	/**
+	 Initialize state for incremental read.
+
+	 To read a large JSON document incrementally:
+	 1. Call `yyjson_incr_new()` to create the state for incremental reading.
+	 2. Call `yyjson_incr_read()` repeatedly.
+	 3. Call `yyjson_incr_free()` to free the state.
+
+	 Note: The incremental JSON reader only supports standard JSON.
+	 Flags for non-standard features (e.g. comments, trailing commas) are ignored.
+
+	 @param buf The JSON data, null-terminator is not required.
+	    If this parameter is NULL, the function will fail and return NULL.
+	 @param buf_len The length of the JSON data in `buf`.
+	    If use `YYJSON_READ_INSITU`, `buf_len` should not include the padding size.
+	 @param flg The JSON read options.
+	    Multiple options can be combined with `|` operator.
+	 @param alc The memory allocator used by JSON reader.
+	    Pass NULL to use the libc's default allocator.
+	 @return A state for incremental reading.
+	    It should be freed with `yyjson_incr_free()`.
+	    NULL is returned if memory allocation fails.
+	*/
+	incr_new :: proc(data: cstring, len: c.size_t, flg: read_flag, alc: ^alc = nil) -> ^incr_state ---
+
+	/**
+	 Performs incremental read of up to `len` bytes.
+
+	 If NULL is returned and `err->code` is set to `YYJSON_READ_ERROR_MORE`, it
+	 indicates that more data is required to continue parsing. Then, call this
+	 function again with incremented `len`. Continue until a document is returned or
+	 an error other than `YYJSON_READ_ERROR_MORE` is returned.
+
+	 Note: Parsing in very small increments is not efficient. An increment of
+	 several kilobytes or megabytes is recommended.
+
+	 @param state The state for incremental reading, created using
+	    `yyjson_incr_new()`.
+	 @param len The number of bytes of JSON data available to parse.
+	    If this parameter is 0, the function will fail and return NULL.
+	 @param err A pointer to receive error information.
+	 @return A new JSON document, or NULL if an error occurs.
+	    When the document is no longer needed, it should be freed with
+	    `yyjson_doc_free()`.
+	*/
+	incr_read :: proc(state: ^incr_state, len: c.size_t, err: ^read_err = nil) -> ^doc ---
+
+	// Release the incremental read state and free the memory.
+	incr_free :: proc(state: ^incr_state) ---
 }

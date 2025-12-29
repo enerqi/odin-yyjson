@@ -18,14 +18,18 @@ JSON and does not have a C wrapper.
 
 The bindings are essentially a 1-to-1 port so that the original yyjson docs are easy to follow.
 
-- symbols named `yyjson_something` in the [C API](https://ibireme.github.io/yyjson/doc/doxygen/html/) are presented
-  as `yyjson.something` in the bindings
+- symbols named `yyjson_something` in the [C API](https://ibireme.github.io/yyjson/doc/doxygen/html/) are presented as
+  `yyjson.something` in the bindings
 - Odin `bit_set`s are used where a number is passed as a flag
 - default parameters maybe provided where valid `NULL` (`nil`) parameters can be used in the C API
 
-## yyjson version
+## Version
 
-- 0.10.0
+| odin-yyjson tag | yyjson version |
+|-----------------|----------------|
+| 2025-12         | 0.12.0         |
+| 2024-09         | 0.10.0         |
+
 
 ## Building the yyjson static library
 

@@ -10,7 +10,7 @@ rem /MT link with LIBCMT.LIB (multithread, static version of the run-time librar
 
 rem /TC compile all files as .c
 rem /O2 maximum optimizations (favor speed)
-cl -nologo -MT -TC -O2 /D yyjson_api_inline= -c yyjson.c
+cl -nologo -MT -TC -O2 -arch:AVX2 /D yyjson_api_inline= -c yyjson.c
 
 rem https://learn.microsoft.com/en-us/cpp/build/reference/lib-reference?view=msvc-170
 rem create static library from COFF object files

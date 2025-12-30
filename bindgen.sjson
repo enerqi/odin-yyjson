@@ -1,0 +1,329 @@
+// yyjson_api_inline controls linkage of inline functions:
+// - Default (undefined): `static yyjson_inline` - functions are statically linked per translation unit
+// - Empty string (e.g. /D yyjson_api_inline=""): removes `static` keyword, making functions externally linkable
+//
+// yyjson exposes significant functionality as inline functions in its headers. To distribute as a 
+// precompiled static library, we override this macro to an empty string during compilation. This converts
+// those inline functions into externally-linkable symbols that are part of the library's public interface.
+// Without this, the bindgen tool cannot generate proper bindings to external functions.
+clang_defines = {
+	"yyjson_api_inline" = ""
+}
+
+// Inputs can be folders or files. It will look for header (.h) files inside
+// any folder. The bindings will be based on those headers. Also, any .lib,
+// .odin, .dll etc will be copied to the output folder.
+inputs = [
+	"src/yyjson.h",
+	"src/yyjson.c"
+]
+
+// Files to ignore when processing files in the inputs folders
+ignore_inputs = [
+	// "file.h"
+]
+
+// Output folder: One .odin file per processed header
+output_folder = "."
+
+// Remove this prefix from types names (structs, enums, etc)
+remove_type_prefix = "yyjson_"
+
+// Remove this prefix from function names (and add it as link_prefix) to the foreign group
+remove_function_prefix = "yyjson_"
+
+// Only include things that has this prefix
+required_prefix = ""
+
+// Single lib file to import
+import_lib = "" // "pdfio1.lib"
+
+// Code file that contain libray import code and whatever else extra you need.
+// Overrides lib_file. Is pasted near top of the final bindings.
+// extras to paste near the top of the file such as hand written enum definitions from C defines
+imports_file = "src/prelude.odin"
+
+// For package line at top of output files
+package_name = "yyjson"
+
+// "Old_Name" = "New_Name",
+// Adapting C types to typical Odin type naming conventions
+rename = {
+	// used `force_ada_case_types` instead of manual renames
+	//"rure" = "Rure",
+	//"rure_set" = "Set",
+	// ...
+}
+
+force_ada_case_types = true
+
+// Turns an enum into a bit_set. Converts the values of the enum into
+// appropriate values for a bit_set. Creates a bit_set type that uses the enum.
+// Properly removes enum values with value 0. Translates the enum values using
+// a log2 procedure.
+// NOTE: This only works on enums that exist in the original C source.
+// Hand-written enums in footer files must have their bit_sets created manually.
+bit_setify = {
+	// "permission_e" = "permission_t"
+}
+
+// Completely override the definition of a type.
+type_overrides = {
+}
+
+// Override the type of a struct field. Note that a plain `[^]` can be used to
+// modify the existing type.
+struct_field_overrides = {
+	// "Some_Type.field" = "f32"
+	// "Some_Type.another_field" = "#by_ptr"
+}
+
+// Overrides the type of a procedure parameter or return value. For a parameter
+// use the key Proc_Name.parameter_name. For a return value use the key Proc_Name.
+// Note that a plain `[^]` and `#by_ptr` can be used to modify the existing type.
+procedure_type_overrides = {
+	"yyjson_alc_pool_init.alc" = "^Alc = nil",
+	"yyjson_alc_dyn_free.alc" = "^Alc = nil",
+	"yyjson_read_opts.alc" = "^Alc = nil",
+	"yyjson_read_opts.err" = "^Read_Err = nil",
+	"yyjson_read_file.alc" = "^Alc = nil",
+	"yyjson_read_file.err" = "^Read_Err = nil",
+	"yyjson_read_fp.fp" = "^libc.FILE",
+	"yyjson_read_fp.alc" = "^Alc = nil",
+	"yyjson_read_fp.err" = "^Read_Err = nil",
+	"yyjson_incr_new.alc" = "^Alc = nil",
+	"yyjson_incr_read.err" = "^Read_Err = nil",
+	"yyjson_read_number.alc" = "^Alc = nil",
+	"yyjson_read_number.err" = "^Read_Err = nil",
+	"yyjson_mut_read_number.alc" = "^Alc = nil",
+	"yyjson_mut_read_number.err" = "^Read_Err = nil",
+	"yyjson_write_opts.alc" = "^Alc = nil",
+	"yyjson_write_opts.err" = "^Write_Err = nil",
+	"yyjson_write_file.alc" = "^Alc = nil",
+	"yyjson_write_file.err" = "^Write_Err = nil",
+	"yyjson_write_fp.fp" = "^libc.FILE",
+	"yyjson_write_fp.alc" = "^Alc = nil",
+	"yyjson_write_fp.err" = "^Write_Err = nil",
+	"yyjson_write_buf.err" = "^Write_Err = nil",
+	"yyjson_mut_write_opts.alc" = "^Alc = nil",
+	"yyjson_mut_write_opts.err" = "^Write_Err = nil",
+	"yyjson_mut_write_file.alc" = "^Alc = nil",
+	"yyjson_mut_write_file.err" = "^Write_Err = nil",
+	"yyjson_mut_write_fp.fp" = "^libc.FILE",
+	"yyjson_mut_write_fp.alc" = "^Alc = nil",
+	"yyjson_mut_write_fp.err" = "^Write_Err = nil",
+	"yyjson_mut_write_buf.err" = "^Write_Err = nil",
+	"yyjson_val_write_opts.alc" = "^Alc = nil",
+	"yyjson_val_write_opts.err" = "^Write_Err = nil",
+	"yyjson_val_write_file.alc" = "^Alc = nil",
+	"yyjson_val_write_file.err" = "^Write_Err = nil",
+	"yyjson_val_write_fp.fp" = "^libc.FILE",
+	"yyjson_val_write_fp.alc" = "^Alc = nil",
+	"yyjson_val_write_fp.err" = "^Write_Err = nil",
+	"yyjson_val_write_buf.err" = "^Write_Err = nil",
+	"yyjson_mut_val_write_opts.alc" = "^Alc = nil",
+	"yyjson_mut_val_write_opts.err" = "^Write_Err = nil",
+	"yyjson_mut_val_write_file.alc" = "^Alc = nil",
+	"yyjson_mut_val_write_file.err" = "^Write_Err = nil",
+	"yyjson_mut_val_write_fp.fp" = "^libc.FILE",
+	"yyjson_mut_val_write_fp.alc" = "^Alc = nil",
+	"yyjson_mut_val_write_fp.err" = "^Write_Err = nil",
+	"yyjson_mut_val_write_buf.err" = "^Write_Err = nil",
+	"yyjson_mut_doc_new.alc" = "^Alc = nil",
+	"yyjson_doc_mut_copy.alc" = "^Alc = nil",
+	"yyjson_mut_doc_mut_copy.alc" = "^Alc = nil",
+	"yyjson_mut_doc_imut_copy.alc" = "^Alc = nil",
+	"yyjson_mut_val_imut_copy.alc" = "^Alc = nil",
+	"unsafe_yyjson_str_pool_grow.alc" = "^Alc = nil",
+	"unsafe_yyjson_val_pool_grow.alc" = "^Alc = nil",
+
+	// JSON Pointer operations - ctx and err can be NULL
+	"yyjson_doc_ptr_getx.err" = "^Ptr_Err = nil",
+	"yyjson_ptr_getx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_doc_ptr_getx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_doc_ptr_getx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_ptr_getx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_ptr_getx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_doc_ptr_addx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_doc_ptr_addx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_ptr_addx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_ptr_addx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_doc_ptr_setx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_doc_ptr_setx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_ptr_setx.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_ptr_setx.err" = "^Ptr_Err = nil",
+	"yyjson_mut_doc_ptr_replacex.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_doc_ptr_replacex.err" = "^Ptr_Err = nil",
+	"yyjson_mut_ptr_replacex.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_ptr_replacex.err" = "^Ptr_Err = nil",
+	"yyjson_mut_doc_ptr_removex.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_doc_ptr_removex.err" = "^Ptr_Err = nil",
+	"yyjson_mut_ptr_removex.ctx" = "^Ptr_Ctx = nil",
+	"yyjson_mut_ptr_removex.err" = "^Ptr_Err = nil",
+
+	// Write functions - len pointer can be NULL
+	"yyjson_write_opts.len" = "^c.size_t = nil",
+	"yyjson_mut_write_opts.len" = "^c.size_t = nil",
+	"yyjson_val_write_opts.len" = "^c.size_t = nil",
+	"yyjson_mut_val_write_opts.len" = "^c.size_t = nil",
+
+	// JSON Patch functions - err can be NULL
+	"yyjson_patch.err" = "^Patch_Err = nil",
+	"yyjson_mut_patch.err" = "^Patch_Err = nil",
+
+	// Read_Flag parameters should use Read_Flags bit_set type
+	"yyjson_read_opts.flg" = "Read_Flags",
+	"yyjson_read_file.flg" = "Read_Flags",
+	"yyjson_read_fp.flg" = "Read_Flags",
+	"yyjson_read.flg" = "Read_Flags",
+	"yyjson_incr_new.flg" = "Read_Flags",
+	"yyjson_read_max_memory_usage.flg" = "Read_Flags",
+	"yyjson_read_number.flg" = "Read_Flags",
+	"yyjson_mut_read_number.flg" = "Read_Flags",
+
+	// Write_Flag parameters should use Write_Flags bit_set type
+	"yyjson_write_opts.flg" = "Write_Flags",
+	"yyjson_write_file.flg" = "Write_Flags",
+	"yyjson_write_fp.flg" = "Write_Flags",
+	"yyjson_write.flg" = "Write_Flags",
+	"yyjson_write_buf.flg" = "Write_Flags",
+	"yyjson_mut_write_opts.flg" = "Write_Flags",
+	"yyjson_mut_write_file.flg" = "Write_Flags",
+	"yyjson_mut_write_fp.flg" = "Write_Flags",
+	"yyjson_mut_write.flg" = "Write_Flags",
+	"yyjson_mut_write_buf.flg" = "Write_Flags",
+	"yyjson_val_write_opts.flg" = "Write_Flags",
+	"yyjson_val_write_file.flg" = "Write_Flags",
+	"yyjson_val_write_fp.flg" = "Write_Flags",
+	"yyjson_val_write.flg" = "Write_Flags",
+	"yyjson_val_write_buf.flg" = "Write_Flags",
+	"yyjson_mut_val_write_opts.flg" = "Write_Flags",
+	"yyjson_mut_val_write_file.flg" = "Write_Flags",
+	"yyjson_mut_val_write_fp.flg" = "Write_Flags",
+	"yyjson_mut_val_write.flg" = "Write_Flags",
+	"yyjson_mut_val_write_buf.flg" = "Write_Flags",
+
+}
+
+// Put the names of declarations in here to remove them.
+remove = [
+	// Numeric types that are turned into hand-written enums
+	"yyjson_patch_code",
+	"yyjson_ptr_code",
+	"yyjson_read_code",
+	"yyjson_write_code",
+
+	// Bit flag types that are turned into hand-written enums and bit_sets in prelude.odin
+	"yyjson_read_flag",
+	"yyjson_write_flag",
+	// Type enums defined as #define constants in C, so we remove the auto-generated u8 alias
+	// and replace it with a hand-written enum in yyjson_footer.odin
+	"yyjson_type",
+	// Subtype enum defined as #define constants in C, so we remove the auto-generated u8 alias
+	// and replace it with a hand-written enum in yyjson_footer.odin
+	"yyjson_subtype",
+	// Type enum members - defined as #define constants in C
+	"YYJSON_TYPE_NONE",
+	"YYJSON_TYPE_RAW",
+	"YYJSON_TYPE_NULL",
+	"YYJSON_TYPE_BOOL",
+	"YYJSON_TYPE_NUM",
+	"YYJSON_TYPE_STR",
+	"YYJSON_TYPE_ARR",
+	"YYJSON_TYPE_OBJ",
+	// Subtype enum members - defined as #define constants in C
+	"YYJSON_SUBTYPE_NONE",
+	"YYJSON_SUBTYPE_FALSE",
+	"YYJSON_SUBTYPE_TRUE",
+	"YYJSON_SUBTYPE_UINT",
+	"YYJSON_SUBTYPE_SINT",
+	"YYJSON_SUBTYPE_REAL",
+	"YYJSON_SUBTYPE_NOESC",
+	// Read_Flag enum members - defined as #define constants in C
+	"YYJSON_READ_INSITU",
+	"YYJSON_READ_STOP_WHEN_DONE",
+	"YYJSON_READ_ALLOW_TRAILING_COMMAS",
+	"YYJSON_READ_ALLOW_COMMENTS",
+	"YYJSON_READ_ALLOW_INF_AND_NAN",
+	"YYJSON_READ_NUMBER_AS_RAW",
+	"YYJSON_READ_ALLOW_INVALID_UNICODE",
+	"YYJSON_READ_BIGNUM_AS_RAW",
+	"YYJSON_READ_ALLOW_BOM",
+	"YYJSON_READ_ALLOW_EXT_NUMBER",
+	"YYJSON_READ_ALLOW_EXT_ESCAPE",
+	"YYJSON_READ_ALLOW_EXT_WHITESPACE",
+	"YYJSON_READ_ALLOW_SINGLE_QUOTED_STR",
+	"YYJSON_READ_ALLOW_UNQUOTED_KEY",
+	// Write_Flag enum members - defined as #define constants in C
+	"YYJSON_WRITE_NOFLAG",
+	"YYJSON_WRITE_PRETTY",
+	"YYJSON_WRITE_ESCAPE_UNICODE",
+	"YYJSON_WRITE_ESCAPE_SLASHES",
+	"YYJSON_WRITE_ALLOW_INF_AND_NAN",
+	"YYJSON_WRITE_INF_AND_NAN_AS_NULL",
+	"YYJSON_WRITE_ALLOW_INVALID_UNICODE",
+	"YYJSON_WRITE_PRETTY_TWO_SPACES",
+	"YYJSON_WRITE_FP_TO_FLOAT",
+	// Write_Code enum members - defined as #define constants in C
+	"YYJSON_WRITE_SUCCESS",
+	"YYJSON_WRITE_ERROR_INVALID_PARAMETER",
+	"YYJSON_WRITE_ERROR_MEMORY_ALLOCATION",
+	"YYJSON_WRITE_ERROR_INVALID_VALUE_TYPE",
+	"YYJSON_WRITE_ERROR_NAN_OR_INF",
+	"YYJSON_WRITE_ERROR_FILE_OPEN",
+	"YYJSON_WRITE_ERROR_FILE_WRITE",
+	"YYJSON_WRITE_ERROR_INVALID_STRING",
+	// Patch_Code enum members - defined as #define constants in C
+	"YYJSON_PATCH_SUCCESS",
+	"YYJSON_PATCH_ERROR_INVALID_PARAMETER",
+	"YYJSON_PATCH_ERROR_MEMORY_ALLOCATION",
+	"YYJSON_PATCH_ERROR_INVALID_OPERATION",
+	"YYJSON_PATCH_ERROR_MISSING_KEY",
+	"YYJSON_PATCH_ERROR_INVALID_MEMBER",
+	"YYJSON_PATCH_ERROR_EQUAL",
+	"YYJSON_PATCH_ERROR_POINTER",
+	// Ptr_Code enum members - defined as #define constants in C
+	"YYJSON_PTR_ERR_NONE",
+	"YYJSON_PTR_ERR_PARAMETER",
+	"YYJSON_PTR_ERR_SYNTAX",
+	"YYJSON_PTR_ERR_RESOLVE",
+	"YYJSON_PTR_ERR_NULL_ROOT",
+	"YYJSON_PTR_ERR_SET_ROOT",
+	"YYJSON_PTR_ERR_MEMORY_ALLOCATION",
+
+	// define used like a function call to set multiple write flag bits
+	"YYJSON_WRITE_FP_TO_FIXED",
+
+	// implementation constants
+	"YYJSON_TYPE_MASK",
+	"YYJSON_TYPE_BIT",
+	"YYJSON_SUBTYPE_MASK",
+	"YYJSON_SUBTYPE_BIT",
+	"YYJSON_RESERVED_MASK",
+	"YYJSON_RESERVED_BIT",
+	"YYJSON_TAG_MASK",
+	"YYJSON_TAG_BIT",
+]
+
+// Inject a new type before another type. Use `rename_types` to just rename
+// a pre-existing type.
+inject_before = {
+	// "Some_Type" = "New_Type :: distinct int"
+}
+
+// For typedefs that don't resolve to anything: Put them in here to create
+// empty structs with that name.
+opaque_types = [
+
+]
+
+// additional include paths to send into clang. While generating the bindings
+// clang will look into this path in search for included headers.
+clang_include_paths = [
+	// "some_path"
+]
+
+// Writes the clang JSON ast dump for debug inspection (in output folder)
+debug_dump_json_ast = false
+
+procedures_at_end = true

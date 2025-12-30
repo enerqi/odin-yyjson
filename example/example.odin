@@ -51,7 +51,8 @@ write_json_string :: proc() {
 	yyj.mut_obj_add_val(doc, root, "hits", hits)
 
 	// To string, minified
-	json := yyj.mut_write(doc, {})
+	len: c.size_t
+	json := yyj.mut_write(doc, {}, &len)
 	if json != nil {
 		log.info("json:", json)
 		libc.free(rawptr(json))
@@ -63,7 +64,9 @@ TEMP_FILE_PATH :: "temp.json"
 
 write_json_file_with_options :: proc() {
 	json := cstring(`{"foo": true, "bar": "こんにちは", "baz":null,} // comment`)
-	idoc := yyj.read(json, len(json), {.YYJSON_READ_ALLOW_COMMENTS, .YYJSON_READ_ALLOW_TRAILING_COMMAS})
+	// Need to allow comments and trailing commas (bit 3 and bit 2)
+	flg := yyj.Read_Flags{.ALLOW_TRAILING_COMMAS, .ALLOW_COMMENTS}
+	idoc := yyj.read(json, len(json), flg)
 	defer yyj.doc_free(idoc)
 
 	// As mutable doc
@@ -81,16 +84,15 @@ write_json_file_with_options :: proc() {
 	}
 
 	// Write the json pretty, escape unicode
-	flg: yyj.write_flag = {.YYJSON_WRITE_PRETTY, .YYJSON_WRITE_ESCAPE_UNICODE}
-	err: yyj.write_err
-	yyj.mut_write_file(TEMP_FILE_PATH, doc, flg, nil, &err)
-	if err.code != .YYJSON_WRITE_SUCCESS {
+	err: yyj.Write_Err
+	yyj.mut_write_file(TEMP_FILE_PATH, doc, yyj.Write_Flags{}, nil, &err)
+	if err.code != .SUCCESS {
 		log.error("write error:", err.code, err.msg)
 	}
 }
 
 read_json_file_with_options :: proc() {
-	err: yyj.read_err
+	err: yyj.Read_Err
 	doc := yyj.read_file(TEMP_FILE_PATH, {}, nil, &err)
 	defer yyj.doc_free(doc)
 

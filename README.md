@@ -19,26 +19,28 @@ JSON and does not have a C wrapper.
 The bindings are essentially a 1-to-1 port so that the original yyjson docs are easy to follow.
 
 - symbols named `yyjson_something` in the [C API](https://ibireme.github.io/yyjson/doc/doxygen/html/) are presented as
-  `yyjson.something` in the bindings
-- Odin `bit_set`s are used where a number is passed as a flag
+	`yyjson.Something` in the bindings
+- types use `Ada_Case` following Odin conventions
+- Odin `bit_set`s are used where a number is passed as flag(s)
 - default parameters maybe provided where valid `NULL` (`nil`) parameters can be used in the C API
 
 ## Version
 
-| odin-yyjson tag | yyjson version |
-|-----------------|----------------|
-| 2025-12         | 0.12.0         |
-| 2024-09         | 0.10.0         |
+| odin-yyjson tag | yyjson version | notes                    |
+| --------------- | -------------- | ------------------------ |
+| 2026-01         | 0.12.0         | Ada Case Types, Bindgen  |
+| 2025-12         | 0.12.0         |                          |
+| 2024-09         | 0.10.0         |                          |
 
 
 ## Building the yyjson static library
 
 - The static library `yyjson.lib` for Windows is shipped with the bindings in `./lib`. On a Posix OS it can be compiled
-  with the `Makefile`
+	with the `Makefile`
 - The static library is built with a custom define, so it's likely more convenient to use our tiny scripts to compile
-  the library on Linux!
+	the library on Linux!
 - The yyjson source is vendored in [./src](./src) along with the build scripts (`build.bat` for Windows, `Makefile` for
-  Linux)
+	Linux)
 
 We cannot easily use the system package manager on Linux, or a C/C++ build system such as [vcpkg](https://vcpkg.io/) or
 [conan](https://conan.io/). `yyjson` exposes a lot of functionality as inline functions that default to being

@@ -28,6 +28,7 @@ The bindings are essentially a 1-to-1 port so that the original yyjson docs are 
 
 | odin-yyjson tag | yyjson version | notes                    |
 | --------------- | -------------- | ------------------------ |
+| 2026-06         | 0.12.0         | Build flags optimized    |
 | 2026-01         | 0.12.0         | Ada Case Types, Bindgen  |
 | 2025-12         | 0.12.0         |                          |
 | 2024-09         | 0.10.0         |                          |

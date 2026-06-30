@@ -1,5 +1,4 @@
-* text=auto
-
-# These files must always have *nix line-endings
-Makefile text eol=lf
-*.sh text eol=lf
+# Normalize all text to LF in history AND force LF in the working tree, so the
+# editor / odinfmt (both LF, per .editorconfig) match what git checks out — even
+# when core.autocrlf=true. eol=lf overrides autocrlf; auto-detection skips binaries.
+* text=auto eol=lf

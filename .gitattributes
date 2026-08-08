@@ -1,4 +1,39 @@
-# Normalize all text to LF in history AND force LF in the working tree, so the
-# editor / odinfmt (both LF, per .editorconfig) match what git checks out — even
-# when core.autocrlf=true. eol=lf overrides autocrlf; auto-detection skips binaries.
+# Normalize all text to LF in history AND force LF in the working tree, so the editor / odinfmt (both
+# LF, per .editorconfig and odinfmt.json's `newline_style`) match what git checks out - even when
+# core.autocrlf=true, which Git for Windows sets in its system config. eol=lf overrides autocrlf.
+#
+# Keep this in sync with .editorconfig's `end_of_line` and odinfmt.json's `newline_style`. odinfmt does
+# NOT read .editorconfig, so without the odinfmt.json setting it writes CRLF on Windows and re-dirties
+# the tree after every `just format` against this LF index.
 * text=auto eol=lf
+
+# Windows batch is the exception: CRLF is what cmd.exe natively expects, and LF-only batch has known
+# failure modes around labels and multi-line blocks. src/build.bat - which builds the yyjson static
+# library - was being checked out LF by the rule above; it happens to work, but going LF -> CRLF cannot
+# break a batch file while the reverse can.
+#
+# Nothing needs committing for this. The index keeps LF either way (the clean filter strips CR on the
+# way in); `eol=crlf` only changes what the smudge filter writes into the working directory. Git will
+# NOT rewrite a file that is already sitting there, so an existing checkout stays LF until the file is
+# re-checked-out (`rm src/build.bat && git checkout -- src/build.bat`), and `git status` reads clean
+# before and after. `git add --renormalize` is the wrong tool here - it operates on the index, which is
+# already correct.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Never normalize these. `text=auto` guesses by looking for a NUL byte in the first 8000 bytes, which
+# is a heuristic, not a guarantee - and this repository tracks the prebuilt lib/yyjson.lib and
+# lib/yyjson.a, where guessing wrong means silently corrupting a library that then fails at link time
+# for no visible reason. Saying so explicitly costs nothing.
+*.exe binary
+*.pdb binary
+*.lib binary
+*.dll binary
+*.obj binary
+*.o binary
+*.so binary
+*.dylib binary
+*.a binary
+*.bc binary
+*.spall binary
